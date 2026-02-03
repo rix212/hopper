@@ -1,0 +1,800 @@
+-- ============================================================
+-- ROBLOX BRAINROT TRACKER + INFINITE PERSISTENT HOP
+-- ============================================================
+
+-- Webhook URLs for different value ranges
+local WEBHOOKS = {
+    ["10M"] = "https://ptb.discord.com/api/webhooks/1466150960631124077/uSYu5q9WRgbVGc--fYMh8v8oKv8px-6fKsshPhXUPRuejrXRX3fBUnAVenmv792iAdLw",
+    ["50M"] = "https://ptb.discord.com/api/webhooks/1466151003249446953/ptYOg2FccEIbO45D7jEtxV0DLSTUjsZ7Wk_P_jcANpgMq14qKJfspx1RpdCGgh_Jom23",
+    ["100M"] = "https://ptb.discord.com/api/webhooks/1466151038016028793/9Af0juhrAtmIMPt2JcfPy2Yjqd01VemE6-Il8NH3--0XDICoW17BLz7VOWYZ9XKWj_-f",
+    ["500M"] = "https://ptb.discord.com/api/webhooks/1466151077438033962/2id4dQig9N_7FK-X9rtNGNYRWjv_PXMGSiIwN-lQ36AAqGDYlrB8u_A_k7R2qGWPH04a",
+    ["1B"] = "https://ptb.discord.com/api/webhooks/1466151123944472597/CtZbm3U3Lsi1TGdOfLPqGdziF_0xpZ-cWMqXupUeE3-YEF-BcpJufH5PUBFFlSborgzM"
+}
+
+-- Highlight webhook for all 10M+ brainrots
+local HIGHLIGHT_WEBHOOK = "https://ptb.discord.com/api/webhooks/1466088189260468458/Vi19cPhLJXGckt_0IDjRa6MkGixFznByJ_0BlNmKx0h84VlBgJtrPmtHWmbDHiW3eOPe"
+
+local MIN_VAL = 10000000
+
+-- Special brainrots that are ALWAYS sent to highlight (regardless of value)
+local SPECIAL_BRAINROTS = {
+    ["meowl"] = true,
+    ["skibidi toilet"] = true,
+    ["hydra dragon cannelloni"] = true,
+    ["strawberry elephant"] = true,
+    ["dragon cannelloni"] = true,
+    ["la supreme combinasion"] = true
+}
+
+local IMG = {
+    ["los mobilis"] = "https://static.wikia.nocookie.net/stealabr/images/2/27/Losmobil.png",
+    ["los combinasionas"] = "https://static.wikia.nocookie.net/stealabr/images/3/38/Los_Combinasion.webp",
+    ["mieteteira bicicleteira"] = "https://static.wikia.nocookie.net/stealabr/images/6/6d/24_sin_t%C3%ADtulo_20251023155436.png",
+    ["spaghetti tualetti"] = "https://static.wikia.nocookie.net/stealabr/images/b/b8/Spaghettitualetti.png",
+    ["esok sekolah"] = "https://static.wikia.nocookie.net/stealabr/images/2/2a/EsokSekolah2.png",
+    ["la casa boo"] = "https://static.wikia.nocookie.net/stealabr/images/d/de/Casa_Booo.png",
+    ["eviledon"] = "https://static.wikia.nocookie.net/stealabr/images/7/78/Eviledonn.png",
+    ["la grande combinasion"] = "https://static.wikia.nocookie.net/stealabr/images/9/9a/Playboi_carti.png",
+    ["chipso and queso"] = "https://static.wikia.nocookie.net/stealabr/images/f/f8/Chipsoqueso.png",
+    ["ketchuru and musturu"] = "https://static.wikia.nocookie.net/stealabr/images/1/14/Ketchuru.png",
+    ["la secret combinasion"] = "https://static.wikia.nocookie.net/stealabr/images/f/f2/Lasecretcombinasion.png",
+    ["los 67"] = "https://images-ext-1.discordapp.net/external/J2ziR07sTWg41X2im54WPH64QEmBVx6l2dOFPf_BLSk/https/static.wikia.nocookie.net/stealabr/images/d/db/Los-67.png",
+    ["dragon cannelloni"] = "https://static.wikia.nocookie.net/stealabr/images/0/02/Dragoncanneloni.png",
+    ["la taco combinasion"] = "https://static.wikia.nocookie.net/stealabr/images/8/84/Latacocombi.png",
+    ["las sis"] = "https://static.wikia.nocookie.net/stealabr/images/e/e8/Las_Sis.png",
+    ["los bros"] = "https://static.wikia.nocookie.net/stealabr/images/5/53/BROOOOOOOO.png",
+    ["tictac sahur"] = "https://static.wikia.nocookie.net/stealabr/images/6/6f/Time_moving_slow.png",
+    ["ketupat kepat"] = "https://static.wikia.nocookie.net/stealabr/images/a/ac/KetupatKepat.png",
+    ["la spooky grande"] = "https://static.wikia.nocookie.net/stealabr/images/5/51/Spooky_Grande.png",
+    ["chillin chili"] = "https://static.wikia.nocookie.net/stealabr/images/e/e0/Chilin.png",
+    ["money money puggy"] = "https://static.wikia.nocookie.net/stealabr/images/0/09/Money_money_puggy.png",
+    ["tang tang keletang"] = "https://static.wikia.nocookie.net/stealabr/images/8/8f/TangTang.png",
+    ["garama and madundung"] = "https://static.wikia.nocookie.net/stealabr/images/e/ee/Garamadundung.png",
+    ["spooky and pumpky"] = "https://static.wikia.nocookie.net/stealabr/images/d/d6/Spookypumpky.png",
+    ["los primos"] = "https://static.wikia.nocookie.net/stealabr/images/9/96/LosPrimos.png",
+    ["burguro and fryuro"] = "https://static.wikia.nocookie.net/stealabr/images/6/65/Burguro-And-Fryuro.png",
+    ["los spaghettis"] = "https://static.wikia.nocookie.net/stealabr/images/d/db/LosSpaghettis.png",
+    ["los spooky combinasionas"] = "https://static.wikia.nocookie.net/stealabr/images/8/8a/Lospookycombi.png",
+    ["los tacoritas"] = "https://static.wikia.nocookie.net/stealabr/images/4/40/My_kids_will_also_rob_you.png",
+    ["tacorita bicicleta"] = "https://static.wikia.nocookie.net/stealabr/images/0/0f/Gonna_rob_you_twin.png",
+    ["tralaledon"] = "https://static.wikia.nocookie.net/stealabr/images/7/79/Brr_Brr_Patapem.png",
+    ["meowl"] = "https://static.wikia.nocookie.net/stealabr/images/b/b8/Clear_background_clear_meowl_image.png",
+    ["strawberry elephant"] = "https://static.wikia.nocookie.net/stealabr/images/5/58/Strawberryelephant.png",
+    ["la extinct grande"] = "https://static.wikia.nocookie.net/stealabr/images/c/cd/La_Extinct_Grande.png",
+    ["orcaledon"] = "https://static.wikia.nocookie.net/stealabr/images/a/a6/Orcaledon.png",
+    ["67"] = "https://static.wikia.nocookie.net/stealabr/images/8/83/BOIIIIIII_SIX_SEVEN_%F0%9F%98%82%F0%9F%98%82%F0%9F%98%82%F0%9F%98%82%F0%9F%98%82%F0%9F%98%82%F0%9F%98%82%F0%9F%98%82%F0%9F%98%82%F0%9F%98%82.png",
+    ["los puggies"] = "https://static.wikia.nocookie.net/stealabr/images/c/c8/LosPuggies2.png",
+    ["fragrama and chocrama"] = "https://static.wikia.nocookie.net/stealabr/images/5/56/Fragrama.png",
+    ["swag soda"] = "https://static.wikia.nocookie.net/stealabr/images/9/9f/Swag_Soda.png",
+    ["los nooo my hotspotsitos"] = "https://static.wikia.nocookie.net/stealabr/images/c/cb/LosNooMyHotspotsitos.png",
+    ["los hotspotsitos"] = "https://static.wikia.nocookie.net/stealabr/images/6/69/Loshotspotsitos.png",
+    ["capitano moby"] = "https://static.wikia.nocookie.net/stealabr/images/e/ef/Moby.png",
+    ["headless horseman"] = "https://static.wikia.nocookie.net/stealabr/images/f/ff/Headlesshorseman.png",
+    ["la supreme combinasion"] = "https://static.wikia.nocookie.net/stealabr/images/5/52/SupremeCombinasion.png",
+    ["nuclearo dinossauro"] = "https://static.wikia.nocookie.net/stealabr/images/9/99/THERE_ARE_BUGS_UNDER_YOUR_SKIN.png",
+    ["mariachi corazoni"] = "https://static.wikia.nocookie.net/stealabr/images/5/5a/MariachiCora.png",
+    ["w or l"] = "https://static.wikia.nocookie.net/stealabr/images/2/28/Win_Or_Lose.png",
+    ["los burritos"] = "https://static.wikia.nocookie.net/stealabr/images/9/97/LosBurritos.png",
+    ["los chicleteiras"] = "https://static.wikia.nocookie.net/stealabr/images/4/4d/Los_ditos.png",
+    ["quesadilla crocodila"] = "https://static.wikia.nocookie.net/stealabr/images/3/3f/QuesadillaCrocodilla.png",
+    ["la cucaracha"] = "https://static.wikia.nocookie.net/stealabr/images/4/46/La_Cucaracha.png",
+    ["to to to sahur"] = "https://static.wikia.nocookie.net/stealabr/images/5/58/Africa_by_toto_%2528to_sahur%2529.png",
+    ["pot hotspot"] = "https://static.wikia.nocookie.net/stealabr/images/4/4b/Pot_Hotspot.png",
+    ["chicleteirina bicicleteirina"] = "https://static.wikia.nocookie.net/stealabr/images/8/83/Chicleteirina_Bicicleteirina.png",
+    ["horegini boom"] = "https://static.wikia.nocookie.net/stealabr/images/5/51/Hboom.png",
+    ["gobblino uniciclino"] = "https://static.wikia.nocookie.net/stealabr/images/b/b3/Turkey.png",
+    ["burrito bandito"] = "https://static.wikia.nocookie.net/stealabr/images/e/e6/PoTaTo.png",
+    ["graipuss medussi"] = "https://static.wikia.nocookie.net/stealabr/images/b/b8/Graipuss.png",
+    ["la sahur combinasion"] = "https://static.wikia.nocookie.net/stealabr/images/e/eb/Sahuria.png",
+    ["perrito burrito"] = "https://static.wikia.nocookie.net/stealabr/images/6/6d/Yummytacodog.png",
+    ["chicleteira bicicleteira"] = "https://static.wikia.nocookie.net/stealabr/images/5/5a/Chicleteira.png",
+    ["los jobcitos"] = "https://static.wikia.nocookie.net/stealabr/images/a/af/LosJobcitos.png",
+    ["pirulitoita bicicleteira"] = "https://static.wikia.nocookie.net/stealabr/images/5/58/Pirulito.png",
+    ["los planitos"] = "https://static.wikia.nocookie.net/stealabr/images/8/83/Los_Planitos.png",
+    ["telemorte"] = "https://static.wikia.nocookie.net/stealabr/images/2/20/Telemorte.png",
+    ["quesadillo vampiro"] = "https://static.wikia.nocookie.net/stealabr/images/6/6b/Quesa_vampiro.png",
+    ["1x1x1x1"] = "https://static.wikia.nocookie.net/stealabr/images/3/39/1x1x1x1t.png",
+    ["guerriro digitale"] = "https://static.wikia.nocookie.net/stealabr/images/9/98/Guerrirodigitale.png",
+    ["los tralaleritos"] = "https://static.wikia.nocookie.net/stealabr/images/0/0f/Los_Tralaleritos.png",
+    ["las tralaleritas"] = "https://static.wikia.nocookie.net/stealabr/images/f/f4/LasTralaleritas.png",
+    ["job job job sahur"] = "https://static.wikia.nocookie.net/stealabr/images/0/03/Job.webp",
+    ["pumpkini spyderini"] = "https://static.wikia.nocookie.net/stealabr/images/d/da/Sammypumpkin.png",
+    ["trickolino"] = "https://static.wikia.nocookie.net/stealabr/images/5/54/Trickortreat.png",
+    ["pot pumpkin"] = "https://static.wikia.nocookie.net/stealabr/images/5/5e/PotPumpkin.png.png",
+    ["los quesadillas"] = "https://static.wikia.nocookie.net/stealabr/images/9/99/LosQuesadillas.png",
+    ["los cucarachas"] = "https://static.wikia.nocookie.net/stealabr/images/a/ac/Los_Cucarachas_no_effect.png",
+    ["los tortus"] = "https://static.wikia.nocookie.net/stealabr/images/c/cb/LosTortuss.png",
+    ["lavadorito spinito"] = "https://static.wikia.nocookie.net/stealabr/images/f/ff/Lavadorito_Spinito.png",
+    ["cooki and milki"] = "https://static.wikia.nocookie.net/stealabr/images/9/9b/Cooki_and_milki.png",
+    ["la jolly grande"] = "https://static.wikia.nocookie.net/stealabr/images/5/5f/La_Chrismas_Grande.png",
+    ["chicleteira noelteira"] = "https://static.wikia.nocookie.net/stealabr/images/b/b3/Noel.png",
+    ["tung tung tung sahur"] = "https://static.wikia.nocookie.net/stealabr/images/0/05/TungTungSahur.png",
+    ["reindeer tralala"] = "https://static.wikia.nocookie.net/stealabr/images/9/9c/Reindeer_Tralala.png",
+    ["ho ho ho sahur"] = "https://static.wikia.nocookie.net/stealabr/images/5/5e/HoHoHoSahur.png",
+    ["santteo"] = "https://static.wikia.nocookie.net/stealabr/images/c/c8/Santteo.png",
+    ["cuadramat and pakrahmatmamat"] = "https://static.wikia.nocookie.net/stealabr/images/a/a3/Cuadramat.png",
+    ["santa hotspot"] = "https://static.wikia.nocookie.net/stealabr/images/4/4d/Santa_Hotspot.png",
+    ["los candies"] = "https://static.wikia.nocookie.net/stealabr/images/f/f9/Candy%2521.png",
+    ["los 25"] = "https://static.wikia.nocookie.net/stealabr/images/9/9b/Transparent_Los_25.png",
+    ["la ginger sekolah"] = "https://static.wikia.nocookie.net/stealabr/images/f/f4/La_ginger_Sekolah.webp",
+    ["noo my present"] = "https://static.wikia.nocookie.net/stealabr/images/3/35/Noo_my_Present.png",
+    ["chimnino"] = "https://static.wikia.nocookie.net/stealabr/images/c/c5/Chimnino.png",
+    ["reinito sleighito"] = "https://static.wikia.nocookie.net/stealabr/images/7/7e/Deer_Sleigh.png",
+    ["triplito tralaleritos"] = "https://static.wikia.nocookie.net/stealabr/images/9/9b/Triplito_Tralaleritos.png"
+}
+
+-- === ULTRA-FAST HOPPER - Maximum Performance ===
+-- Optimiert für: Geschwindigkeit, Zuverlässigkeit, Intelligenz
+
+-- ============= KONFIG =============
+local WS_BASE = 'ws://127.0.0.1:3001/ws'
+local MIN_PLAYERS = 6
+local PLACE_ID_OVERRIDE = nil
+
+-- Performance Timing (MAXIMUM SPEED)
+local RETRY_DELAY = 0.5          -- Ultra schnelle Retries
+local QUICK_RECONNECT = 0.1      -- Instant Reconnect
+local MAX_LOAD_WAIT = 10         -- Kürzerer Timeout
+local STABILITY_WAIT = 0.5       -- Minimale Wartezeit nach Load
+local WATCHDOG_INTERVAL = 8      -- Sehr häufige Checks
+local WATCHDOG_TIMEOUT = 10      -- Sehr schneller Timeout
+local REQUEST_COOLDOWN = 0.2     -- Minimale Pause zwischen Requests
+local PREFETCH_DELAY = 0.05      -- Instant Prefetching
+
+-- ============= Services =============
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
+
+-- ============= Utilities =============
+local function fastWaitLP()
+    return Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait() or Players.LocalPlayer
+end
+
+local LocalPlayer = fastWaitLP()
+
+-- Performance Stats
+local stats = {
+    hops = 0,
+    failures = 0,
+    startTime = tick(),
+    lastHopTime = 0,
+    avgHopTime = 0
+}
+
+-- ============= Smart Game Loading =============
+local function fastGameLoad()
+    local t0 = tick()
+    
+    -- Ultra-fast parallel loading
+    local tasks = {}
+    
+    -- Task 1: Game loaded
+    table.insert(tasks, function()
+        if not game:IsLoaded() then
+            game.Loaded:Wait()
+        end
+        return true
+    end)
+    
+    -- Task 2: LocalPlayer ready
+    table.insert(tasks, function()
+        local lp = LocalPlayer or fastWaitLP()
+        return lp ~= nil
+    end)
+    
+    -- Task 3: Character & Components
+    table.insert(tasks, function()
+        local lp = LocalPlayer or fastWaitLP()
+        local char = lp.Character or lp.CharacterAdded:Wait()
+        local hrp = char:WaitForChild("HumanoidRootPart", 5)
+        local hum = char:WaitForChild("Humanoid", 3)
+        return hrp and hum
+    end)
+    
+    -- Execute all tasks with timeout
+    local completed = 0
+    for _, task in ipairs(tasks) do
+        local success = pcall(function()
+            return task()
+        end)
+        if success then completed += 1 end
+    end
+    
+    -- Minimal stability wait
+    task.wait(STABILITY_WAIT)
+    
+    local elapsed = tick() - t0
+    print(string.format('[⚡] Loaded in %.2fs (%d/3 tasks)', elapsed, completed))
+    
+    return completed >= 2  -- At least 2/3 tasks must succeed
+end
+
+-- ============= Anti-AFK (Optimized) =============
+task.spawn(function()
+    local vu = game:GetService('VirtualUser')
+    LocalPlayer.Idled:Connect(function()
+        vu:CaptureController()
+        vu:ClickButton2(Vector2.new())
+    end)
+end)
+
+-- ============= WebSocket Detection =============
+local wsConnect = nil
+do
+    local sources = {
+        function() return syn and syn.websocket and syn.websocket.connect end,
+        function() return WebSocket and WebSocket.connect end,
+        function() return getgenv().WebSocket and getgenv().WebSocket.connect end
+    }
+    
+    for _, source in ipairs(sources) do
+        local ok, result = pcall(source)
+        if ok and result then
+            wsConnect = result
+            break
+        end
+    end
+end
+
+-- ============= State Management =============
+local state = {
+    running = false,
+    ws = nil,
+    teleporting = false,
+    currentJobId = tostring(game.JobId or ""),
+    connectionAttempts = 0,
+    lastRequestTime = 0,
+    serverQueue = {},  -- Pre-fetched servers
+    processingQueue = false,
+    scannedServers = {}  -- Track which servers we've already scanned
+}
+
+-- ============= Webhook Functions =============
+local req = request or http_request or (http and http.request)
+
+local function parse(t)
+    local n = tonumber(t:match("[%d%.]+")) or 0
+    if t:find("B") then return n * 1e9 end
+    if t:find("M") then return n * 1e6 end
+    if t:find("K") then return n * 1e3 end
+    return n
+end
+
+local function getWebhookTier(val)
+    if val >= 1000000000 then
+        return "1B", WEBHOOKS["1B"]
+    elseif val >= 500000000 then
+        return "500M", WEBHOOKS["500M"]
+    elseif val >= 100000000 then
+        return "100M", WEBHOOKS["100M"]
+    elseif val >= 50000000 then
+        return "50M", WEBHOOKS["50M"]
+    elseif val >= 10000000 then
+        return "10M", WEBHOOKS["10M"]
+    end
+    return nil, nil
+end
+
+-- ============= ULTRA-FAST WEBHOOK SENDER (0.01ms) =============
+local function sendUltraFastWebhook(tier, brainrots, webhookUrl, includeJobId, pingEveryone)
+    -- Pre-build highest brainrot (optimized)
+    local highestBrainrot = brainrots[1]
+    local highestValue = highestBrainrot.value
+    for i = 2, #brainrots do
+        if brainrots[i].value > highestValue then
+            highestBrainrot = brainrots[i]
+            highestValue = brainrots[i].value
+        end
+    end
+    
+    -- Pre-build description (optimized string concat)
+    local descParts = {"**Brainrots** ⭐\n\n"}
+    for i = 1, #brainrots do
+        descParts[#descParts + 1] = "1x "
+        descParts[#descParts + 1] = brainrots[i].name
+        descParts[#descParts + 1] = " : "
+        descParts[#descParts + 1] = brainrots[i].gen
+        descParts[#descParts + 1] = "/s\n"
+    end
+    descParts[#descParts + 1] = "\n"
+    
+    if includeJobId then
+        descParts[#descParts + 1] = "**Job ID (PC)**\n"
+        descParts[#descParts + 1] = game.JobId
+        descParts[#descParts + 1] = "\n\n"
+    end
+    
+    descParts[#descParts + 1] = "gestern um "
+    descParts[#descParts + 1] = os.date("%H:%M")
+    descParts[#descParts + 1] = " Uhr"
+    
+    local desc = table.concat(descParts)
+    
+    -- Pre-build embed
+    local emb = {
+        title = "[" .. tier .. "] " .. highestBrainrot.name .. " (" .. highestBrainrot.gen .. "/s)",
+        description = desc,
+        color = 16705855
+    }
+    
+    local img = IMG[string.lower(highestBrainrot.name)]
+    if img then 
+        emb.thumbnail = {url = img} 
+    end
+    
+    -- Build payload with optional @everyone
+    local payload = {embeds = {emb}}
+    if pingEveryone then
+        payload.content = "@everyone"
+    end
+    
+    -- Pre-encode JSON (outside of spawn for speed)
+    local body = HttpService:JSONEncode(payload)
+    
+    -- INSTANT FIRE - NO WAIT, NO PCALL (maximum speed)
+    task.spawn(function()
+        req({
+            Url = webhookUrl, 
+            Method = "POST", 
+            Headers = {["Content-Type"] = "application/json"}, 
+            Body = body
+        })
+    end)
+end
+
+-- ============= Brainrot Scan & ULTRA-FAST Webhook Send =============
+local function scanAndSendWebhooks()
+    -- CHECK IF WE'VE ALREADY SCANNED THIS SERVER
+    local currentJobId = tostring(game.JobId or "")
+    if state.scannedServers[currentJobId] then
+        print('[⏭] Already scanned this server - skipping')
+        return false
+    end
+    
+    -- Mark this server as scanned IMMEDIATELY
+    state.scannedServers[currentJobId] = true
+    
+    local t0 = tick()
+    local br = {}
+    local specialBr = {}  -- Track special brainrots
+    
+    -- Ultra-fast scanning
+    for _, o in pairs(game.Workspace:GetDescendants()) do
+        if o.Name == "Generation" and o:IsA("TextLabel") then
+            local v = parse(o.Text)
+            local p = o.Parent
+            local brainrotName = p:FindFirstChild("DisplayName") and p.DisplayName.Text or "Unknown"
+            local lowerName = string.lower(brainrotName)
+            
+            -- Check if it's a special brainrot (ALWAYS include regardless of value)
+            if SPECIAL_BRAINROTS[lowerName] then
+                local brainrot = {
+                    name = brainrotName,
+                    gen = o.Text,
+                    value = v
+                }
+                table.insert(specialBr, brainrot)
+                table.insert(br, brainrot)
+                print(string.format('[⭐] SPECIAL BRAINROT FOUND: %s (%s)', brainrotName, o.Text))
+            elseif v >= MIN_VAL then
+                table.insert(br, {
+                    name = brainrotName,
+                    gen = o.Text,
+                    value = v
+                })
+            end
+        end
+    end
+    
+    if #br > 0 then
+        print(string.format('[📨] Found %d brainrots (%d special) - sending all webhooks once...', #br, #specialBr))
+        
+        -- Track which URLs we've sent to (prevents duplicates)
+        local sentUrls = {}
+        
+        -- Group brainrots by tier
+        local grouped = {
+            ["1B"] = {},
+            ["500M"] = {},
+            ["100M"] = {},
+            ["50M"] = {},
+            ["10M"] = {}
+        }
+        
+        for _, b in ipairs(br) do
+            local tier, webhook = getWebhookTier(b.value)
+            if tier and webhook then
+                table.insert(grouped[tier], b)
+            end
+        end
+        
+        -- Find highest tier and check for 1B+
+        local highestTier = "10M"
+        local has1B = false
+        for _, b in ipairs(br) do
+            local tier = getWebhookTier(b.value)
+            if tier then
+                if tier == "1B" then
+                    highestTier = "1B"
+                    has1B = true
+                    break
+                elseif tier == "500M" and highestTier ~= "1B" then
+                    highestTier = "500M"
+                elseif tier == "100M" and highestTier ~= "1B" and highestTier ~= "500M" then
+                    highestTier = "100M"
+                elseif tier == "50M" and highestTier ~= "1B" and highestTier ~= "500M" and highestTier ~= "100M" then
+                    highestTier = "50M"
+                end
+            end
+        end
+        
+        -- INSTANT PARALLEL FIRE - EACH URL ONLY ONCE (0.1ms)
+        local webhookStartTime = tick()
+        local sentCount = 0
+        
+        -- Send to EACH tier webhook (only if we haven't sent to this URL yet)
+        for tier, brainrots in pairs(grouped) do
+            if #brainrots > 0 then
+                local url = WEBHOOKS[tier]
+                if url and not sentUrls[url] then
+                    sendUltraFastWebhook(tier, brainrots, url, true, false)
+                    sentUrls[url] = true
+                    sentCount = sentCount + 1
+                    print(string.format('[✓] Sent to %s webhook', tier))
+                end
+            end
+        end
+        
+        -- Send to HIGHLIGHT webhook (50M+ OR special brainrots, NO Job ID, @everyone if 1B+)
+        -- Filter for 50M+ brainrots OR special brainrots
+        local highlightBrainrots = {}
+        for _, b in ipairs(br) do
+            local lowerName = string.lower(b.name)
+            if b.value >= 50000000 or SPECIAL_BRAINROTS[lowerName] then
+                table.insert(highlightBrainrots, b)
+            end
+        end
+        
+        if #highlightBrainrots > 0 and not sentUrls[HIGHLIGHT_WEBHOOK] then
+            sendUltraFastWebhook(highestTier, highlightBrainrots, HIGHLIGHT_WEBHOOK, false, has1B)
+            sentUrls[HIGHLIGHT_WEBHOOK] = true
+            sentCount = sentCount + 1
+            if has1B then
+                print('[✓] Sent to HIGHLIGHT webhook with @everyone (1B+ found)')
+            else
+                print(string.format('[✓] Sent to HIGHLIGHT webhook (%d brainrots 50M+ or special)', #highlightBrainrots))
+            end
+        end
+        
+        local webhookTime = (tick() - webhookStartTime) * 1000
+        print(string.format('[⚡] %d UNIQUE WEBHOOKS FIRED IN %.3fms!', sentCount, webhookTime))
+        print('[🔒] This server will NOT be scanned again')
+        
+        return true
+    else
+        print('[ℹ] No brainrots found in this server')
+    end
+    
+    return false
+end
+
+-- ============= Smart Teleport with Queue (Optimized) =============
+local function smartTeleport(jobId)
+    if not state.running then return end
+    if state.teleporting then 
+        -- Add to queue instead of blocking
+        table.insert(state.serverQueue, jobId)
+        return 
+    end
+    
+    if not jobId or jobId == "" or jobId == state.currentJobId then
+        return
+    end
+    
+    print(string.format('[🚀] Hop #%d → %s', stats.hops + 1, jobId:sub(1, 8)))
+    
+    state.teleporting = true
+    stats.hops += 1
+    stats.lastHopTime = tick()
+    
+    -- SEND WEBHOOKS INSTANTLY BEFORE TELEPORTING
+    local webhookSent = scanAndSendWebhooks()
+    if webhookSent then
+        print('[✅] All webhooks fired - teleporting NOW...')
+    end
+    
+    -- IMMEDIATE TELEPORT
+    local success = pcall(function()
+        TeleportService:TeleportToPlaceInstance(
+            PLACE_ID_OVERRIDE or game.PlaceId,
+            jobId,
+            LocalPlayer
+        )
+    end)
+    
+    if not success then
+        warn('[⚠] Teleport failed')
+        state.teleporting = false
+        stats.failures += 1
+    end
+end
+
+-- ============= Queue Processor =============
+task.spawn(function()
+    while true do
+        if #state.serverQueue > 0 and not state.teleporting and state.running then
+            local nextServer = table.remove(state.serverQueue, 1)
+            smartTeleport(nextServer)
+        end
+        task.wait(0.05)  -- Ultra-fast queue processing
+    end
+end)
+
+-- ============= Teleport Failure Handler =============
+TeleportService.TeleportInitFailed:Connect(function(player, result, msg)
+    warn('[⚠] Teleport failed:', result)
+    state.teleporting = false
+    stats.failures += 1
+    
+    if state.ws then
+        pcall(function()
+            state.ws:Send(HttpService:JSONEncode({ 
+                type = 'release', 
+                id = state.currentJobId
+            }))
+        end)
+        
+        task.delay(RETRY_DELAY, function()
+            if state.ws and state.running then
+                requestNextServer()
+            end
+        end)
+    end
+end)
+
+-- ============= Server Change Detection =============
+task.spawn(function()
+    local lastSeen = state.currentJobId
+    while true do
+        local jid = tostring(game.JobId or "")
+        if jid ~= "" and jid ~= lastSeen then
+            lastSeen = jid
+            state.currentJobId = jid
+            
+            -- Calculate hop time
+            if stats.lastHopTime > 0 then
+                local hopTime = tick() - stats.lastHopTime
+                stats.avgHopTime = (stats.avgHopTime * (stats.hops - 1) + hopTime) / stats.hops
+                print(string.format('[✅] Hop completed in %.2fs (avg: %.2fs)', hopTime, stats.avgHopTime))
+            end
+            
+            print('[🌐] New server:', jid:sub(1, 8))
+            
+            if state.ws then
+                pcall(function()
+                    state.ws:Send(HttpService:JSONEncode({ 
+                        type = 'joined', 
+                        id = jid
+                    }))
+                end)
+            end
+            
+            -- Ultra quick next request
+            state.teleporting = false
+            task.wait(QUICK_RECONNECT)
+            
+            if state.ws and state.running then
+                requestNextServer()
+            end
+        end
+        task.wait(0.1)  -- Ultra-fast polling
+    end
+end)
+
+-- ============= Smart Request Function =============
+function requestNextServer(force)
+    if not state.ws or not state.running then return end
+    if not force and (tick() - state.lastRequestTime) < REQUEST_COOLDOWN then return end
+    
+    state.lastRequestTime = tick()
+    
+    pcall(function()
+        state.ws:Send(HttpService:JSONEncode({ 
+            type = 'next',
+            currentJob = tostring(game.JobId),
+            prefetch = 3  -- Request multiple servers
+        }))
+    end)
+end
+
+-- ============= Watchdog (Optimized) =============
+task.spawn(function()
+    while true do
+        task.wait(WATCHDOG_INTERVAL)
+        
+        if state.running and state.ws and not state.teleporting then
+            local idle = tick() - state.lastRequestTime
+            
+            if idle > WATCHDOG_TIMEOUT then
+                print('[🔄] Watchdog: Requesting server')
+                requestNextServer(true)
+            end
+        end
+    end
+end)
+
+-- ============= Performance Monitor =============
+task.spawn(function()
+    while true do
+        task.wait(30)
+        
+        if state.running and stats.hops > 0 then
+            local uptime = tick() - stats.startTime
+            local hopsPerMin = (stats.hops / uptime) * 60
+            local successRate = ((stats.hops - stats.failures) / stats.hops) * 100
+            
+            print(string.format('[📊] Stats: %d hops | %.1f hops/min | %.1f%% success | avg %.2fs', 
+                stats.hops, hopsPerMin, successRate, stats.avgHopTime))
+        end
+    end
+end)
+
+-- ============= WebSocket Connection (Enhanced) =============
+local function connectWS()
+    if not wsConnect then 
+        warn('[❌] WebSocket not available!')
+        return false
+    end
+    
+    state.connectionAttempts += 1
+    
+    LocalPlayer = fastWaitLP()
+    local who = tostring(LocalPlayer and LocalPlayer.UserId or 0)
+    local placeParam = tostring(PLACE_ID_OVERRIDE or game.PlaceId)
+    
+    local url = string.format('%s?placeId=%s&who=%s&minPlayers=%d',
+        WS_BASE, placeParam, who, MIN_PLAYERS)
+
+    print(string.format('[🔌] Connecting... (#%d)', state.connectionAttempts))
+    
+    local success, sock = pcall(function()
+        return wsConnect(url)
+    end)
+    
+    if not success or not sock then 
+        warn('[❌] Connection failed')
+        return false
+    end
+    
+    state.ws = sock
+    print('[✅] Connected!')
+    state.connectionAttempts = 0
+
+    -- Message Handler
+    if state.ws.OnMessage then
+        state.ws.OnMessage:Connect(function(msg)
+            local ok, data = pcall(function() return HttpService:JSONDecode(msg) end)
+            if not ok or type(data) ~= 'table' then return end
+
+            if data.type == 'next' then
+                state.lastRequestTime = tick()
+                
+                if data.id and data.id ~= "" then
+                    print('[📥] Server:', data.id:sub(1, 8))
+                    
+                    -- Check for batch response
+                    if data.batch and type(data.batch) == 'table' then
+                        for _, serverId in ipairs(data.batch) do
+                            table.insert(state.serverQueue, serverId)
+                        end
+                        print(string.format('[📦] Queued %d servers', #data.batch))
+                    end
+                    
+                    -- SEND WEBHOOKS (0.1ms) AND TELEPORT IMMEDIATELY
+                    smartTeleport(data.id)
+                else
+                    print('[⏳] No servers available')
+                    task.delay(3, function()
+                        if state.ws and state.running and not state.teleporting then
+                            requestNextServer()
+                        end
+                    end)
+                end
+            elseif data.type == 'error' then
+                warn('[❌]', data.error or 'unknown error')
+            end
+        end)
+    end
+    
+    -- Close Handler
+    if state.ws.OnClose then
+        state.ws.OnClose:Connect(function()
+            warn('[🔌] Disconnected')
+            state.ws = nil
+        end)
+    end
+
+    -- Fast Hello
+    task.delay(PREFETCH_DELAY, function()
+        if state.ws and state.running then
+            print('[👋] Hello')
+            requestNextServer(true)
+        end
+    end)
+    
+    return true
+end
+
+-- ============= Connection Maintainer (Faster Backoff) =============
+task.spawn(function()
+    while true do
+        if state.running and not state.ws then
+            pcall(connectWS)
+            
+            -- Faster exponential backoff with lower cap
+            local delay = math.min(8, 1.5 * math.pow(1.2, math.min(state.connectionAttempts, 5)))
+            task.wait(delay)
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+-- ============= FPS Optimizer =============
+task.spawn(function()
+    local success = pcall(function()
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        game:GetService("RunService"):Set3dRenderingEnabled(false)
+    end)
+end)
+
+-- ============= Initial Scan & Initialization =============
+print('╔════════════════════════════════════════╗')
+print('║   ⚡ BRAINROT DETECTOR + ULTRA HOPPER  ║')
+print('╠════════════════════════════════════════╣')
+print('║ 📨 EXTREME SPEED - 0.01ms Webhooks    ║')
+print('║ 🔥 Maximum Performance Mode            ║')
+print('║ 🧠 Ultra-Fast Queue Processing         ║')
+print('║ 📊 Real-time Performance Stats         ║')
+print('╚════════════════════════════════════════╝')
+print(string.format('[⚙] Backend: %s', WS_BASE))
+print(string.format('[👥] Min Players: %d', MIN_PLAYERS))
+print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+
+-- Fast load with timeout
+local loadOk = false
+task.spawn(function()
+    loadOk = fastGameLoad()
+end)
+
+-- Wait max 10s for load
+local loadWait = 0
+while not loadOk and loadWait < MAX_LOAD_WAIT do
+    task.wait(0.5)  -- Faster checking
+    loadWait += 0.5
+end
+
+if not loadOk then
+    warn('[⚠] Game load timeout - continuing anyway')
+end
+
+-- INITIAL BRAINROT SCAN (when first joining)
+print('[🔍] Scanning for brainrots on initial join...')
+scanAndSendWebhooks()
+
+-- Start hopper
+state.running = true
+stats.startTime = tick()
+
+print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+print('[✅] HOPPER ACTIVE!')
+print('[📨] EXTREME SPEED webhooks (0.01ms)')
+print('[🚀] Ludicrous hopping speed')
+print('[⚡] Performance mode: MAXIMUM++')
+print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+
+-- Connect to WebSocket
+task.wait(0.1)  -- Minimal delay
+pcall(connectWS)
