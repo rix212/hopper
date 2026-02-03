@@ -745,9 +745,19 @@ end)
 -- ============= FPS Optimizer =============
 task.spawn(function()
     local success = pcall(function()
-        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-        game:GetService("RunService"):Set3dRenderingEnabled(false)
+        -- Set FPS cap to 10
+        setfpscap(10)
+        print('[⚡] FPS capped to 10')
     end)
+    
+    if not success then
+        -- Fallback method
+        pcall(function()
+            settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+            game:GetService("RunService"):Set3dRenderingEnabled(false)
+            print('[⚡] Graphics minimized')
+        end)
+    end
 end)
 
 -- ============= Initial Scan & Initialization =============
