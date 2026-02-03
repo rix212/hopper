@@ -16,16 +16,6 @@ local HIGHLIGHT_WEBHOOK = "https://ptb.discord.com/api/webhooks/1466088189260468
 
 local MIN_VAL = 10000000
 
--- Special brainrots that are ALWAYS sent to highlight (regardless of value)
-local SPECIAL_BRAINROTS = {
-    ["meowl"] = true,
-    ["skibidi toilet"] = true,
-    ["hydra dragon cannelloni"] = true,
-    ["strawberry elephant"] = true,
-    ["dragon cannelloni"] = true,
-    ["la supreme combinasion"] = true
-}
-
 local IMG = {
     ["los mobilis"] = "https://static.wikia.nocookie.net/stealabr/images/2/27/Losmobil.png",
     ["los combinasionas"] = "https://static.wikia.nocookie.net/stealabr/images/3/38/Los_Combinasion.webp",
@@ -131,15 +121,15 @@ local WS_BASE = 'ws://127.0.0.1:3001/ws'
 local MIN_PLAYERS = 6
 local PLACE_ID_OVERRIDE = nil
 
--- Performance Timing (MAXIMUM SPEED)
-local RETRY_DELAY = 0.5          -- Ultra schnelle Retries
-local QUICK_RECONNECT = 0.1      -- Instant Reconnect
-local MAX_LOAD_WAIT = 10         -- Kürzerer Timeout
-local STABILITY_WAIT = 0.5       -- Minimale Wartezeit nach Load
-local WATCHDOG_INTERVAL = 8      -- Sehr häufige Checks
-local WATCHDOG_TIMEOUT = 10      -- Sehr schneller Timeout
-local REQUEST_COOLDOWN = 0.2     -- Minimale Pause zwischen Requests
-local PREFETCH_DELAY = 0.05      -- Instant Prefetching
+-- Performance Timing (stark reduziert)
+local RETRY_DELAY = 1.5          -- Schnellere Retries
+local QUICK_RECONNECT = 0.3      -- Sofortiges Reconnect
+local MAX_LOAD_WAIT = 20         -- Kürzerer Timeout
+local STABILITY_WAIT = 1.5       -- Weniger Wartezeit nach Load
+local WATCHDOG_INTERVAL = 15     -- Häufigere Checks
+local WATCHDOG_TIMEOUT = 20      -- Schnellerer Timeout
+local REQUEST_COOLDOWN = 0.5     -- Minimale Pause zwischen Requests
+local PREFETCH_DELAY = 0.1       -- Sofortiges Prefetching
 
 -- ============= Services =============
 local Players = game:GetService("Players")
@@ -167,7 +157,7 @@ local stats = {
 local function fastGameLoad()
     local t0 = tick()
     
-    -- Ultra-fast parallel loading
+    -- Parallel loading checks
     local tasks = {}
     
     -- Task 1: Game loaded
@@ -188,8 +178,8 @@ local function fastGameLoad()
     table.insert(tasks, function()
         local lp = LocalPlayer or fastWaitLP()
         local char = lp.Character or lp.CharacterAdded:Wait()
-        local hrp = char:WaitForChild("HumanoidRootPart", 5)
-        local hum = char:WaitForChild("Humanoid", 3)
+        local hrp = char:WaitForChild("HumanoidRootPart", 10)
+        local hum = char:WaitForChild("Humanoid", 5)
         return hrp and hum
     end)
     
@@ -202,7 +192,7 @@ local function fastGameLoad()
         if success then completed += 1 end
     end
     
-    -- Minimal stability wait
+    -- Quick stability wait
     task.wait(STABILITY_WAIT)
     
     local elapsed = tick() - t0
@@ -247,8 +237,7 @@ local state = {
     connectionAttempts = 0,
     lastRequestTime = 0,
     serverQueue = {},  -- Pre-fetched servers
-    processingQueue = false,
-    scannedServers = {}  -- Track which servers we've already scanned
+    processingQueue = false
 }
 
 -- ============= Webhook Functions =============
@@ -277,40 +266,28 @@ local function getWebhookTier(val)
     return nil, nil
 end
 
--- ============= ULTRA-FAST WEBHOOK SENDER (0.01ms) =============
-local function sendUltraFastWebhook(tier, brainrots, webhookUrl, includeJobId, pingEveryone)
-    -- Pre-build highest brainrot (optimized)
+-- ============= ULTRA-FAST WEBHOOK SENDER (0.1ms) =============
+local function sendUltraFastWebhook(tier, brainrots, webhookUrl, includeJobId)
+    -- Pre-build highest brainrot
     local highestBrainrot = brainrots[1]
-    local highestValue = highestBrainrot.value
     for i = 2, #brainrots do
-        if brainrots[i].value > highestValue then
+        if brainrots[i].value > highestBrainrot.value then
             highestBrainrot = brainrots[i]
-            highestValue = brainrots[i].value
         end
     end
     
-    -- Pre-build description (optimized string concat)
-    local descParts = {"**Brainrots** ⭐\n\n"}
+    -- Pre-build description
+    local desc = "**Brainrots** ⭐\n\n"
     for i = 1, #brainrots do
-        descParts[#descParts + 1] = "1x "
-        descParts[#descParts + 1] = brainrots[i].name
-        descParts[#descParts + 1] = " : "
-        descParts[#descParts + 1] = brainrots[i].gen
-        descParts[#descParts + 1] = "/s\n"
+        desc = desc .. "1x " .. brainrots[i].name .. " : " .. brainrots[i].gen .. "/s\n"
     end
-    descParts[#descParts + 1] = "\n"
+    desc = desc .. "\n"
     
     if includeJobId then
-        descParts[#descParts + 1] = "**Job ID (PC)**\n"
-        descParts[#descParts + 1] = game.JobId
-        descParts[#descParts + 1] = "\n\n"
+        desc = desc .. "**Job ID (PC)**\n" .. game.JobId .. "\n\n"
     end
     
-    descParts[#descParts + 1] = "gestern um "
-    descParts[#descParts + 1] = os.date("%H:%M")
-    descParts[#descParts + 1] = " Uhr"
-    
-    local desc = table.concat(descParts)
+    desc = desc .. "heute um " .. os.date("%H:%M") .. " Uhr"
     
     -- Pre-build embed
     local emb = {
@@ -324,16 +301,10 @@ local function sendUltraFastWebhook(tier, brainrots, webhookUrl, includeJobId, p
         emb.thumbnail = {url = img} 
     end
     
-    -- Build payload with optional @everyone
-    local payload = {embeds = {emb}}
-    if pingEveryone then
-        payload.content = "@everyone"
-    end
+    -- Pre-encode JSON
+    local body = HttpService:JSONEncode({embeds = {emb}})
     
-    -- Pre-encode JSON (outside of spawn for speed)
-    local body = HttpService:JSONEncode(payload)
-    
-    -- INSTANT FIRE - NO WAIT, NO PCALL (maximum speed)
+    -- INSTANT FIRE-AND-FORGET (no pcall, no waiting)
     task.spawn(function()
         req({
             Url = webhookUrl, 
@@ -346,41 +317,17 @@ end
 
 -- ============= Brainrot Scan & ULTRA-FAST Webhook Send =============
 local function scanAndSendWebhooks()
-    -- CHECK IF WE'VE ALREADY SCANNED THIS SERVER
-    local currentJobId = tostring(game.JobId or "")
-    if state.scannedServers[currentJobId] then
-        print('[⏭] Already scanned this server - skipping')
-        return false
-    end
-    
-    -- Mark this server as scanned IMMEDIATELY
-    state.scannedServers[currentJobId] = true
-    
     local t0 = tick()
     local br = {}
-    local specialBr = {}  -- Track special brainrots
     
     -- Ultra-fast scanning
     for _, o in pairs(game.Workspace:GetDescendants()) do
         if o.Name == "Generation" and o:IsA("TextLabel") then
             local v = parse(o.Text)
-            local p = o.Parent
-            local brainrotName = p:FindFirstChild("DisplayName") and p.DisplayName.Text or "Unknown"
-            local lowerName = string.lower(brainrotName)
-            
-            -- Check if it's a special brainrot (ALWAYS include regardless of value)
-            if SPECIAL_BRAINROTS[lowerName] then
-                local brainrot = {
-                    name = brainrotName,
-                    gen = o.Text,
-                    value = v
-                }
-                table.insert(specialBr, brainrot)
-                table.insert(br, brainrot)
-                print(string.format('[⭐] SPECIAL BRAINROT FOUND: %s (%s)', brainrotName, o.Text))
-            elseif v >= MIN_VAL then
+            if v >= MIN_VAL then
+                local p = o.Parent
                 table.insert(br, {
-                    name = brainrotName,
+                    name = p:FindFirstChild("DisplayName") and p.DisplayName.Text or "Unknown",
                     gen = o.Text,
                     value = v
                 })
@@ -389,7 +336,7 @@ local function scanAndSendWebhooks()
     end
     
     if #br > 0 then
-        print(string.format('[📨] Found %d brainrots (%d special) - sending all webhooks once...', #br, #specialBr))
+        print(string.format('[📨] Found %d brainrots - sending all webhooks once...', #br))
         
         -- Track which URLs we've sent to (prevents duplicates)
         local sentUrls = {}
@@ -410,15 +357,13 @@ local function scanAndSendWebhooks()
             end
         end
         
-        -- Find highest tier and check for 1B+
+        -- Find highest tier
         local highestTier = "10M"
-        local has1B = false
         for _, b in ipairs(br) do
             local tier = getWebhookTier(b.value)
             if tier then
                 if tier == "1B" then
                     highestTier = "1B"
-                    has1B = true
                     break
                 elseif tier == "500M" and highestTier ~= "1B" then
                     highestTier = "500M"
@@ -439,7 +384,7 @@ local function scanAndSendWebhooks()
             if #brainrots > 0 then
                 local url = WEBHOOKS[tier]
                 if url and not sentUrls[url] then
-                    sendUltraFastWebhook(tier, brainrots, url, true, false)
+                    sendUltraFastWebhook(tier, brainrots, url, true)
                     sentUrls[url] = true
                     sentCount = sentCount + 1
                     print(string.format('[✓] Sent to %s webhook', tier))
@@ -447,34 +392,18 @@ local function scanAndSendWebhooks()
             end
         end
         
-        -- Send to HIGHLIGHT webhook (50M+ OR special brainrots, NO Job ID, @everyone if 1B+)
-        -- Filter for 50M+ brainrots OR special brainrots
-        local highlightBrainrots = {}
-        for _, b in ipairs(br) do
-            local lowerName = string.lower(b.name)
-            if b.value >= 50000000 or SPECIAL_BRAINROTS[lowerName] then
-                table.insert(highlightBrainrots, b)
-            end
-        end
-        
-        if #highlightBrainrots > 0 and not sentUrls[HIGHLIGHT_WEBHOOK] then
-            sendUltraFastWebhook(highestTier, highlightBrainrots, HIGHLIGHT_WEBHOOK, false, has1B)
+        -- Send to HIGHLIGHT webhook (only if we haven't sent to this URL yet)
+        if not sentUrls[HIGHLIGHT_WEBHOOK] then
+            sendUltraFastWebhook(highestTier, br, HIGHLIGHT_WEBHOOK, true)
             sentUrls[HIGHLIGHT_WEBHOOK] = true
             sentCount = sentCount + 1
-            if has1B then
-                print('[✓] Sent to HIGHLIGHT webhook with @everyone (1B+ found)')
-            else
-                print(string.format('[✓] Sent to HIGHLIGHT webhook (%d brainrots 50M+ or special)', #highlightBrainrots))
-            end
+            print('[✓] Sent to HIGHLIGHT webhook')
         end
         
         local webhookTime = (tick() - webhookStartTime) * 1000
         print(string.format('[⚡] %d UNIQUE WEBHOOKS FIRED IN %.3fms!', sentCount, webhookTime))
-        print('[🔒] This server will NOT be scanned again')
         
         return true
-    else
-        print('[ℹ] No brainrots found in this server')
     end
     
     return false
@@ -528,7 +457,7 @@ task.spawn(function()
             local nextServer = table.remove(state.serverQueue, 1)
             smartTeleport(nextServer)
         end
-        task.wait(0.05)  -- Ultra-fast queue processing
+        task.wait(0.1)
     end
 end)
 
@@ -581,7 +510,7 @@ task.spawn(function()
                 end)
             end
             
-            -- Ultra quick next request
+            -- Quick next request
             state.teleporting = false
             task.wait(QUICK_RECONNECT)
             
@@ -589,7 +518,7 @@ task.spawn(function()
                 requestNextServer()
             end
         end
-        task.wait(0.1)  -- Ultra-fast polling
+        task.wait(0.3)  -- Faster polling
     end
 end)
 
@@ -727,17 +656,17 @@ local function connectWS()
     return true
 end
 
--- ============= Connection Maintainer (Faster Backoff) =============
+-- ============= Connection Maintainer (Smart Backoff) =============
 task.spawn(function()
     while true do
         if state.running and not state.ws then
             pcall(connectWS)
             
-            -- Faster exponential backoff with lower cap
-            local delay = math.min(8, 1.5 * math.pow(1.2, math.min(state.connectionAttempts, 5)))
+            -- Exponential backoff with cap
+            local delay = math.min(15, 2 * math.pow(1.3, math.min(state.connectionAttempts, 6)))
             task.wait(delay)
         else
-            task.wait(1)
+            task.wait(2)
         end
     end
 end)
@@ -754,9 +683,9 @@ end)
 print('╔════════════════════════════════════════╗')
 print('║   ⚡ BRAINROT DETECTOR + ULTRA HOPPER  ║')
 print('╠════════════════════════════════════════╣')
-print('║ 📨 EXTREME SPEED - 0.01ms Webhooks    ║')
-print('║ 🔥 Maximum Performance Mode            ║')
-print('║ 🧠 Ultra-Fast Queue Processing         ║')
+print('║ 📨 All Tier + Highlight Webhooks 1x   ║')
+print('║ 🔥 Ultra-Fast Parallel Execution      ║')
+print('║ 🧠 Smart Queue & Prefetching           ║')
 print('║ 📊 Real-time Performance Stats         ║')
 print('╚════════════════════════════════════════╝')
 print(string.format('[⚙] Backend: %s', WS_BASE))
@@ -769,11 +698,11 @@ task.spawn(function()
     loadOk = fastGameLoad()
 end)
 
--- Wait max 10s for load
+-- Wait max 20s for load
 local loadWait = 0
 while not loadOk and loadWait < MAX_LOAD_WAIT do
-    task.wait(0.5)  -- Faster checking
-    loadWait += 0.5
+    task.wait(1)
+    loadWait += 1
 end
 
 if not loadOk then
@@ -790,11 +719,11 @@ stats.startTime = tick()
 
 print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
 print('[✅] HOPPER ACTIVE!')
-print('[📨] EXTREME SPEED webhooks (0.01ms)')
-print('[🚀] Ludicrous hopping speed')
-print('[⚡] Performance mode: MAXIMUM++')
+print('[📨] All tier + highlight webhooks (0.1ms)')
+print('[🚀] Ultra-fast hopping')
+print('[⚡] Performance mode: MAXIMUM')
 print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
 
 -- Connect to WebSocket
-task.wait(0.1)  -- Minimal delay
+task.wait(0.3)
 pcall(connectWS)
